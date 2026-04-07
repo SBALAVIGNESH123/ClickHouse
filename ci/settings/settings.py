@@ -25,6 +25,7 @@ S3_BUCKET_TO_HTTP_ENDPOINT = {
     S3_REPORT_BUCKET_NAME: S3_REPORT_BUCKET_HTTP_ENDPOINT,
 }
 ENABLE_ARTIFACTS_REPORT = True
+HTML_PAGE_FILE = "report.html"
 
 COMPRESS_THRESHOLD_MB = 32
 TEXT_CONTENT_EXTENSIONS = [
@@ -50,6 +51,7 @@ SECRET_CI_DB_PASSWORD = "clickhouse-test-stat-password"
 USE_CUSTOM_GH_AUTH = True
 SECRET_GH_APP_ID: str = "woolenwolf_gh_app.clickhouse-app-id"
 SECRET_GH_APP_PEM_KEY: str = "woolenwolf_gh_app.clickhouse-app-key"
+SECRET_GH_APP_INSTALLATION_ID: str = "woolenwolf_gh_app.installation_id"
 
 INSTALL_PYTHON_REQS_FOR_NATIVE_JOBS = ""
 

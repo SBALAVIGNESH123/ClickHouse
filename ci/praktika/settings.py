@@ -65,6 +65,7 @@ class _Settings:
     USE_CUSTOM_GH_AUTH: bool = False
     SECRET_GH_APP_ID: str = ""
     SECRET_GH_APP_PEM_KEY: str = ""
+    SECRET_GH_APP_INSTALLATION_ID: str = ""
 
     ENV_SETUP_SCRIPT: str = f"{TEMP_DIR}/praktika_setup_env.sh"
     WORKFLOW_JOB_FILE: str = f"{TEMP_DIR}/workflow_job.json"
@@ -84,7 +85,8 @@ class _Settings:
     #        Report settings             #
     ######################################
     HTML_S3_PATH: str = ""
-    HTML_PAGE_FILE: str = "./ci/praktika/json.html"
+    # Legacy plain JSON viewer page. The React/Click UI-based page is report.html (see ci/praktika/report-click-ui).
+    HTML_PAGE_FILE: str = "json.html"
     S3_BUCKET_TO_HTTP_ENDPOINT: Optional[Dict[str, str]] = None
     TEXT_CONTENT_EXTENSIONS: Iterable[str] = frozenset([".txt", ".log"])
     # Compress if text file size exceeds this threshold (in MB, 0 - disable compression)
@@ -101,7 +103,10 @@ class _Settings:
     SECRET_CI_DB_PASSWORD: str = ""
     CI_DB_DB_NAME = ""
     CI_DB_TABLE_NAME = ""
+    KEEPER_STRESS_METRICS_DB_NAME = "keeper_stress_tests"
+    KEEPER_STRESS_METRICS_TABLE_NAME = "keeper_metrics_ts"
     CI_DB_INSERT_TIMEOUT_SEC = 20
+    CI_DB_QUERY_TIMEOUT_SEC = 60
 
     # to post links for reading statistics in html report (with read-only user)
     CI_DB_READ_USER: str = ""
@@ -156,10 +161,13 @@ _USER_DEFINED_SETTINGS = [
     "SECRET_CI_DB_PASSWORD",
     "CI_DB_DB_NAME",
     "CI_DB_TABLE_NAME",
+    "KEEPER_STRESS_METRICS_DB_NAME",
+    "KEEPER_STRESS_METRICS_TABLE_NAME",
     "CI_DB_INSERT_TIMEOUT_SEC",
     "USE_CUSTOM_GH_AUTH",
     "SECRET_GH_APP_ID",
     "SECRET_GH_APP_PEM_KEY",
+    "SECRET_GH_APP_INSTALLATION_ID",
     "MAIN_BRANCH",
     "DISABLED_WORKFLOWS",
     "ENABLED_WORKFLOWS",
@@ -170,6 +178,7 @@ _USER_DEFINED_SETTINGS = [
     "CI_DB_READ_USER",
     "CI_DB_READ_URL",
     "TEST_FAILURE_PATTERNS",
+    "HTML_PAGE_FILE",
 ]
 
 
