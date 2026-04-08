@@ -506,7 +506,7 @@ class JobConfigs:
             requires=[ArtifactNames.CH_ARM_ASAN_UBSAN],
         ),
         Job.ParamSet(
-            parameter="amd_asan_ubsan, distributed plan, flaky check",
+            parameter="amd_asan_ubsan, flaky check",
             runs_on=RunnerLabels.AMD_MEDIUM,
             requires=[ArtifactNames.CH_AMD_ASAN_UBSAN],
         ),
