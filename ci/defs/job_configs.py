@@ -501,17 +501,17 @@ class JobConfigs:
     )
     stateless_tests_flaky_pr_jobs = common_ft_job_config.parametrize(
         Job.ParamSet(
-            parameter="arm_asan_ubsan, flaky check",
+            parameter="arm_asan_ubsan, AsyncInsert, flaky check",
             runs_on=RunnerLabels.ARM_MEDIUM,
             requires=[ArtifactNames.CH_ARM_ASAN_UBSAN],
         ),
         Job.ParamSet(
-            parameter="amd_asan_ubsan, flaky check",
+            parameter="amd_asan_ubsan, distributed plan, flaky check",
             runs_on=RunnerLabels.AMD_MEDIUM,
             requires=[ArtifactNames.CH_AMD_ASAN_UBSAN],
         ),
         Job.ParamSet(
-            parameter="amd_tsan, flaky check",
+            parameter="amd_tsan, s3 storage, flaky check",
             runs_on=RunnerLabels.AMD_LARGE,
             requires=[ArtifactNames.CH_AMD_TSAN],
         ),
@@ -521,7 +521,7 @@ class JobConfigs:
             requires=[ArtifactNames.CH_AMD_MSAN],
         ),
         Job.ParamSet(
-            parameter="amd_debug, flaky check",
+            parameter="amd_debug, DatabaseReplicated, flaky check",
             runs_on=RunnerLabels.AMD_MEDIUM,
             requires=[ArtifactNames.CH_AMD_DEBUG],
         ),

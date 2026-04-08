@@ -474,7 +474,11 @@ def main():
         ]
 
         if is_flaky_check:
-            commands.append(CH.enable_thread_fuzzer_config)
+            # Thread fuzzer is only useful with TSan/MSan builds where it can expose
+            # synchronization issues.  For ASan/debug it hasn't found issues for months
+            # and makes flaky check behave differently from regular stateless tests.
+            if "asan" not in args.options and "debug" not in args.options:
+                commands.append(CH.enable_thread_fuzzer_config)
             sanitizers = ("asan", "tsan", "msan", "ubsan")
             if any(san in args.options for san in sanitizers):
                 commands.append(lambda: CH.set_memory_ratio(0.8))
