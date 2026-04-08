@@ -474,6 +474,10 @@ def main():
         ]
 
         if is_flaky_check:
+            # Thread fuzzer is disabled: it is only used in flaky check, not in regular
+            # stateless tests, making flaky check non-representative. It hasn't surfaced
+            # real issues in months.
+            # commands.append(CH.enable_thread_fuzzer_config)
             sanitizers = ("asan", "tsan", "msan", "ubsan")
             if any(san in args.options for san in sanitizers):
                 commands.append(lambda: CH.set_memory_ratio(0.8))
