@@ -222,8 +222,8 @@ def main():
         print(f"Workers count set from --workers: {args.workers}")
         workers = args.workers
     elif is_flaky_check:
-        workers = max(1, nproc - 1)
-        print(f"Workers count set to nproc-1 for flaky check: {workers}")
+        workers = nproc
+        print(f"Workers count set to nproc for flaky check: {workers}")
     else:
         print(f"Workers count set to optimal value: {nproc}")
         workers = nproc
@@ -554,7 +554,7 @@ def main():
         global_time_limit = 0
         if is_flaky_check:
             # Hard 45-minute wall-clock limit for the test runner.
-            FLAKY_CHECK_TIME_LIMIT = 45 * 60  # 45 min
+            FLAKY_CHECK_TIME_LIMIT = 35 * 60  # 35 min
             global_time_limit = max(
                 FLAKY_CHECK_TIME_LIMIT - int(stop_watch.duration), 0
             )
