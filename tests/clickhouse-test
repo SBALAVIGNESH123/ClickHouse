@@ -4094,12 +4094,16 @@ def do_run_tests(
         if jobs > 1:
             random.shuffle(test_suite.parallel_tests)
 
-        batch_size = len(test_suite.parallel_tests) // jobs
-        manager = multiprocessing.Manager()
-        parallel_tests = manager.list()
-        parallel_tests.extend(test_suite.parallel_tests)
         workers_to_shed = multiprocessing.Value('i', 0)
         total_failures_shared = multiprocessing.Value('i', 0)
+
+        # Partition tests so that all copies of the same test go to the same
+        # worker.  This prevents the same test from running concurrently on
+        # multiple workers, which matters for --test-runs (flaky check) when
+        # tests use shared resources (tables with fixed names, files, etc.).
+        worker_queues: List[List[str]] = [[] for _ in range(jobs)]
+        for test in test_suite.parallel_tests:
+            worker_queues[stringhash(test) % jobs].append(test)
 
         processes = []
         for i in range(jobs):
@@ -4107,8 +4111,8 @@ def do_run_tests(
                 target=run_tests_process,
                 args=(
                     (
-                        parallel_tests,
-                        batch_size,
+                        worker_queues[i],
+                        len(worker_queues[i]),
                         test_suite,
                         True,
                         args,
@@ -4138,9 +4142,9 @@ def do_run_tests(
             sys.stdout.flush()
 
             # Periodically check memory pressure and reduce concurrency if needed.
-            # All workers share the same parallel_tests queue, so stopping one
-            # from picking up new tests reduces future concurrency without losing
-            # any already-queued work.
+            # Each worker has its own queue, so shedding a worker means its
+            # remaining tests will not run — an acceptable trade-off under
+            # memory pressure.
             now = time()
             if now - last_memory_check >= MEMORY_CHECK_INTERVAL and len(processes) > 1:
                 last_memory_check = now
