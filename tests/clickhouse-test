@@ -46,7 +46,7 @@ from errno import EPERM, ESRCH
 from ssl import SSLEOFError
 from subprocess import PIPE, Popen
 from time import sleep, time
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 try:
     import termcolor  # type: ignore
@@ -3571,8 +3571,6 @@ def run_tests_array(
         multiprocessing.managers.ListProxy,
         int,
         multiprocessing.sharedctypes.Synchronized,
-        Optional[Any],  # running_tests dict
-        Optional[Any],  # running_tests_lock
     ],
 ):
     (
@@ -3587,8 +3585,6 @@ def run_tests_array(
         restarted_tests,
         process_index,
         total_failures_shared,
-        running_tests,
-        running_tests_lock,
     ) = all_tests_with_params
 
     os.environ["LLVM_PROFILE_FILE"] = f"clickhouse-client-proc{process_index}-%2m.profraw"
@@ -3643,8 +3639,6 @@ def run_tests_array(
         proc_name = multiprocessing.current_process().name
         print(f"Running {about}{num_tests} {test_suite.suite} tests ({proc_name}).")
 
-    deferred_in_a_row = 0
-
     while True:
         # Check whether this worker has been asked to shed (stop after finishing
         # its previous test). The check happens before popping the next test so
@@ -3662,35 +3656,11 @@ def run_tests_array(
         else:
             break
 
-        # Prevent the same test from running concurrently on multiple workers.
-        # If another worker is already running this test, put it back at the
-        # end of the queue and try the next one. This avoids conflicts when
-        # tests use shared resources (tables with fixed names, files, etc.)
-        # during --test-runs (flaky check).
-        if running_tests_lock is not None:
-            with running_tests_lock:
-                if case in running_tests:
-                    all_tests.append(case)
-                    deferred_in_a_row += 1
-                    # If all remaining tests are currently running, wait a bit
-                    # to avoid a tight spin loop.
-                    if deferred_in_a_row > 10:
-                        sleep(0.5)
-                    continue
-                running_tests[case] = True
-            deferred_in_a_row = 0
-
         if server_died.is_set():
-            if running_tests_lock is not None:
-                with running_tests_lock:
-                    running_tests.pop(case, None)
             stop_tests()
             raise ServerDied("Server died")
 
         if args.stop_time and time() > args.stop_time:
-            if running_tests_lock is not None:
-                with running_tests_lock:
-                    running_tests.pop(case, None)
             print("\nStop tests run because global time limit is exceeded.\n")
             stop_tests()
             raise GlobalTimeout("Stop tests run because global time limit is exceeded")
@@ -3773,10 +3743,6 @@ def run_tests_array(
             print(colored("Break tests execution", args, "red"))
             stop_tests()
             raise e
-        finally:
-            if running_tests_lock is not None:
-                with running_tests_lock:
-                    running_tests.pop(case, None)
 
         if failures_chain >= args.max_failures_chain:
             stop_tests()
@@ -4134,10 +4100,6 @@ def do_run_tests(
         parallel_tests.extend(test_suite.parallel_tests)
         workers_to_shed = multiprocessing.Value('i', 0)
         total_failures_shared = multiprocessing.Value('i', 0)
-        # Track which tests are currently running so workers can avoid
-        # executing the same test concurrently (important for --test-runs).
-        running_tests = manager.dict()
-        running_tests_lock = manager.Lock()
 
         processes = []
         for i in range(jobs):
@@ -4156,8 +4118,6 @@ def do_run_tests(
                         restarted_tests,
                         i,  # process index
                         total_failures_shared,
-                        running_tests,
-                        running_tests_lock,
                     ),
                 ),
             )
@@ -4252,8 +4212,6 @@ def do_run_tests(
                 restarted_tests,
                 jobs + 1,
                 seq_total_failures,
-                None,
-                None,
             )
         )
 
