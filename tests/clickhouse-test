@@ -4097,22 +4097,35 @@ def do_run_tests(
         workers_to_shed = multiprocessing.Value('i', 0)
         total_failures_shared = multiprocessing.Value('i', 0)
 
-        # Partition tests so that all copies of the same test go to the same
-        # worker.  This prevents the same test from running concurrently on
-        # multiple workers, which matters for --test-runs (flaky check) when
-        # tests use shared resources (tables with fixed names, files, etc.).
-        worker_queues: List[List[str]] = [[] for _ in range(jobs)]
-        for test in test_suite.parallel_tests:
-            worker_queues[stringhash(test) % jobs].append(test)
+        if args.test_runs > 1:
+            # Partition tests so that all copies of the same test go to the
+            # same worker.  This prevents the same test from running
+            # concurrently on multiple workers, avoiding conflicts when tests
+            # use shared resources (tables with fixed names, files, etc.).
+            worker_queues: List[List[str]] = [[] for _ in range(jobs)]
+            for test in test_suite.parallel_tests:
+                worker_queues[stringhash(test) % jobs].append(test)
+        else:
+            manager = multiprocessing.Manager()
+            shared_queue = manager.list()
+            shared_queue.extend(test_suite.parallel_tests)
+
+        batch_size = len(test_suite.parallel_tests) // jobs
 
         processes = []
         for i in range(jobs):
+            if args.test_runs > 1:
+                queue = worker_queues[i]
+                queue_size = len(queue)
+            else:
+                queue = shared_queue
+                queue_size = batch_size
             process = multiprocessing.Process(
                 target=run_tests_process,
                 args=(
                     (
-                        worker_queues[i],
-                        len(worker_queues[i]),
+                        queue,
+                        queue_size,
                         test_suite,
                         True,
                         args,
@@ -4142,8 +4155,9 @@ def do_run_tests(
             sys.stdout.flush()
 
             # Periodically check memory pressure and reduce concurrency if needed.
-            # Each worker has its own queue, so shedding a worker means its
-            # remaining tests will not run — an acceptable trade-off under
+            # In normal mode workers share a single queue, so shedding one
+            # does not lose work.  In --test-runs mode each worker has its own
+            # queue, so its remaining tests will not run — acceptable under
             # memory pressure.
             now = time()
             if now - last_memory_check >= MEMORY_CHECK_INTERVAL and len(processes) > 1:
